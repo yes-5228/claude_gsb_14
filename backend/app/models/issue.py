@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constants import IssueCategory, IssueSeverity, IssueStatus
@@ -23,6 +23,11 @@ class Issue(Base):
         ForeignKey("inspections.id", ondelete="SET NULL"), nullable=True, index=True,
         comment="关联巡查记录",
     )
+    # 问题上报时公厕的位置快照，点位调整后不回写，用于按位置的历史口径统计
+    district: Mapped[str] = mapped_column(String(60), default="", index=True, comment="发生时所属区域")
+    address: Mapped[str] = mapped_column(String(200), default="", comment="发生时详细地址")
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True, comment="发生时经度")
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True, comment="发生时纬度")
     title: Mapped[str] = mapped_column(String(120), comment="问题标题")
     description: Mapped[str] = mapped_column(Text, default="", comment="问题描述")
     category: Mapped[str] = mapped_column(

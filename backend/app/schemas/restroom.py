@@ -41,11 +41,13 @@ class RestroomCreate(RestroomBase):
 
 
 class RestroomUpdate(BaseModel):
-    """局部更新，仅提交需要变更的字段。"""
+    """局部更新，仅提交需要变更的字段。
+
+    点位信息（区域/地址/经纬度）不在此开放：位置调整必须走专用的
+    点位调整接口，以便固化调整前后值并留痕，历史记录按发生时位置归属。
+    """
 
     name: str | None = Field(default=None, min_length=1, max_length=120)
-    district: str | None = Field(default=None, min_length=1, max_length=60)
-    address: str | None = Field(default=None, max_length=200)
     grade: RestroomGrade | None = None
     status: RestroomStatus | None = None
     manager: str | None = Field(default=None, max_length=60)
@@ -54,8 +56,6 @@ class RestroomUpdate(BaseModel):
     stall_count: int | None = Field(default=None, ge=0)
     basin_count: int | None = Field(default=None, ge=0)
     has_accessible: bool | None = None
-    longitude: float | None = None
-    latitude: float | None = None
     remark: str | None = Field(default=None, max_length=500)
 
 

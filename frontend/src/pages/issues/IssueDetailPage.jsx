@@ -126,6 +126,17 @@ export default function IssueDetailPage() {
                       '-'
                     ),
                   },
+                  {
+                    label: '发生时位置',
+                    value: (
+                      <>
+                        {[issue.district, issue.address].filter(Boolean).join(' · ') || '-'}
+                        {issue.restroom && issue.district && issue.district !== issue.restroom.district ? (
+                          <span className="badge-mini">上报后已调整点位，按原位置统计</span>
+                        ) : null}
+                      </>
+                    ),
+                  },
                   { label: '问题分类', value: issue.category },
                   {
                     label: '上报人 / 时间',

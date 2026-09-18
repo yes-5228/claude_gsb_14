@@ -12,7 +12,7 @@ from app.core.constants import (
     IssueStatus,
 )
 from app.core.exceptions import DomainError, NotFoundError
-from app.models import Inspection, Issue, RectificationRecord, Restroom
+from app.models import Inspection, Issue, RectificationRecord
 from app.schemas.issue import IssueCreate, IssueOut, IssueStatusUpdate, IssueUpdate
 from app.services import restroom_service
 
@@ -85,9 +85,8 @@ def list_issues(
 ) -> tuple[list[Issue], int]:
     stmt = select(Issue)
     if district:
-        stmt = stmt.join(Restroom, Restroom.id == Issue.restroom_id).where(
-            Restroom.district == district
-        )
+        # 按问题上报时的区域快照过滤，点位调整后历史记录仍归属原区域
+        stmt = stmt.where(Issue.district == district)
     if restroom_id:
         stmt = stmt.where(Issue.restroom_id == restroom_id)
     if inspection_id:
@@ -135,7 +134,7 @@ def list_issues(
 
 
 def create_issue(db: Session, payload: IssueCreate) -> Issue:
-    restroom_service.get_restroom(db, payload.restroom_id)
+    restroom = restroom_service.get_restroom(db, payload.restroom_id)
     if payload.inspection_id is not None:
         inspection = db.get(Inspection, payload.inspection_id)
         if inspection is None:
@@ -149,6 +148,10 @@ def create_issue(db: Session, payload: IssueCreate) -> Issue:
         inspection_id=payload.inspection_id,
         report_time=payload.report_time or datetime.now(),
         status=IssueStatus.PENDING.value,
+        district=restroom.district,
+        address=restroom.address or "",
+        longitude=restroom.longitude,
+        latitude=restroom.latitude,
         **data,
     )
     issue.records.append(

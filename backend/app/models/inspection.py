@@ -19,6 +19,11 @@ class Inspection(Base):
     restroom_id: Mapped[int] = mapped_column(
         ForeignKey("restrooms.id", ondelete="CASCADE"), index=True, comment="所属公厕"
     )
+    # 巡查发生时公厕的位置快照，点位调整后不回写，用于按位置的历史口径统计
+    district: Mapped[str] = mapped_column(String(60), default="", index=True, comment="发生时所属区域")
+    address: Mapped[str] = mapped_column(String(200), default="", comment="发生时详细地址")
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True, comment="发生时经度")
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True, comment="发生时纬度")
     inspector: Mapped[str] = mapped_column(String(60), index=True, comment="巡查人")
     inspect_time: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now, index=True, comment="巡查时间"

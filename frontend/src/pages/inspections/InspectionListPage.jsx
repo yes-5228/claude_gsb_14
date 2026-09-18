@@ -141,7 +141,19 @@ export default function InspectionListPage() {
                     '-'
                   ),
               },
-              { key: 'district', title: '区域', render: (row) => row.restroom?.district ?? '-' },
+              {
+                key: 'district',
+                title: '区域',
+                render: (row) => {
+                  const moved = row.restroom && row.district && row.district !== row.restroom.district;
+                  return (
+                    <span>
+                      {row.district || row.restroom?.district || '-'}
+                      {moved ? <span className="badge-mini">调整前</span> : null}
+                    </span>
+                  );
+                },
+              },
               { key: 'inspector', title: '巡查人' },
               { key: 'shift', title: '班次' },
               { key: 'score', title: '得分', render: (row) => <ScorePill score={row.score} /> },

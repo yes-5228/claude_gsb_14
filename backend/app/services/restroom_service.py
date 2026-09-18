@@ -74,7 +74,13 @@ def list_restrooms(
 
 
 def list_districts(db: Session) -> list[str]:
-    return list(db.scalars(select(Restroom.district).distinct().order_by(Restroom.district)))
+    # 当前公厕区域 ∪ 历史巡查/问题的发生时区域，
+    # 让点位已迁出的区域仍出现在筛选下拉中，保证按位置口径连续。
+    current = select(Restroom.district)
+    insp = select(Inspection.district).where(Inspection.district != "")
+    iss = select(Issue.district).where(Issue.district != "")
+    rows = db.scalars(current.union(insp, iss)).all()
+    return sorted({district for district in rows if district})
 
 
 def create_restroom(db: Session, payload: RestroomCreate) -> Restroom:

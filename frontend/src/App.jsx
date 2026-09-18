@@ -5,6 +5,7 @@ import DashboardPage from './pages/dashboard/DashboardPage.jsx';
 import InspectionListPage from './pages/inspections/InspectionListPage.jsx';
 import IssueDetailPage from './pages/issues/IssueDetailPage.jsx';
 import IssueListPage from './pages/issues/IssueListPage.jsx';
+import AdjustmentListPage from './pages/restrooms/AdjustmentListPage.jsx';
 import RestroomDetailPage from './pages/restrooms/RestroomDetailPage.jsx';
 import RestroomListPage from './pages/restrooms/RestroomListPage.jsx';
 
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/restrooms" element={<RestroomListPage />} />
         <Route path="/restrooms/:restroomId" element={<RestroomDetailPage />} />
+        <Route path="/restroom-adjustments" element={<AdjustmentListPage />} />
         <Route path="/inspections" element={<InspectionListPage />} />
         <Route path="/issues" element={<IssueListPage />} />
         <Route path="/issues/:issueId" element={<IssueDetailPage />} />

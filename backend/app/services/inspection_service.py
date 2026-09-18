@@ -68,9 +68,8 @@ def list_inspections(
 ) -> tuple[list[Inspection], int]:
     stmt = select(Inspection)
     if district:
-        stmt = stmt.join(Restroom, Restroom.id == Inspection.restroom_id).where(
-            Restroom.district == district
-        )
+        # 按巡查发生时的区域快照过滤，点位调整后历史记录仍归属原区域
+        stmt = stmt.where(Inspection.district == district)
     if restroom_id:
         stmt = stmt.where(Inspection.restroom_id == restroom_id)
     if inspector:
@@ -101,11 +100,15 @@ def list_inspections(
 
 
 def create_inspection(db: Session, payload: InspectionCreate) -> Inspection:
-    restroom_service.get_restroom(db, payload.restroom_id)
+    restroom = restroom_service.get_restroom(db, payload.restroom_id)
     items = _normalize_items(payload.items)
     score, grade, result = scoring.evaluate(items)
     inspection = Inspection(
         restroom_id=payload.restroom_id,
+        district=restroom.district,
+        address=restroom.address or "",
+        longitude=restroom.longitude,
+        latitude=restroom.latitude,
         inspector=payload.inspector,
         shift=payload.shift.value if hasattr(payload.shift, "value") else payload.shift,
         inspect_time=payload.inspect_time or datetime.now(),

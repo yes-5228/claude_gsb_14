@@ -52,6 +52,13 @@ export default function RestroomFormModal({ restroom, onClose, onSaved }) {
     delete payload.code;
     delete payload.created_at;
     delete payload.updated_at;
+    if (restroom?.id) {
+      // 点位信息只能通过「位置调整」变更并留痕，普通编辑不提交这些字段
+      delete payload.district;
+      delete payload.address;
+      delete payload.longitude;
+      delete payload.latitude;
+    }
     try {
       if (restroom?.id) {
         await restroomApi.update(restroom.id, payload);
@@ -90,8 +97,16 @@ export default function RestroomFormModal({ restroom, onClose, onSaved }) {
         <Field label="公厕名称 *">
           <input value={form.name} onChange={setValue('name')} placeholder="如：人民广场公共厕所" />
         </Field>
-        <Field label="所属区域 *">
-          <input value={form.district} onChange={setValue('district')} placeholder="如：城东区" />
+        <Field
+          label="所属区域 *"
+          hint={restroom?.id ? '点位调整请使用详情页「位置调整」，以便留痕并保持历史统计连续' : undefined}
+        >
+          <input
+            value={form.district}
+            onChange={setValue('district')}
+            placeholder="如：城东区"
+            disabled={Boolean(restroom?.id)}
+          />
         </Field>
         <Field label="公厕编号" hint="留空由系统自动生成">
           <input
@@ -141,7 +156,12 @@ export default function RestroomFormModal({ restroom, onClose, onSaved }) {
           </label>
         </Field>
         <Field label="详细地址" full>
-          <input value={form.address} onChange={setValue('address')} placeholder="路名 + 门牌或明显参照物" />
+          <input
+            value={form.address}
+            onChange={setValue('address')}
+            placeholder="路名 + 门牌或明显参照物"
+            disabled={Boolean(restroom?.id)}
+          />
         </Field>
         <Field label="备注" full>
           <textarea rows="2" value={form.remark || ''} onChange={setValue('remark')} />

@@ -16,10 +16,11 @@ from app.core.constants import (
     Shift,
 )
 from app.models import Restroom
+from app.schemas.adjustment import RestroomRelocationPayload
 from app.schemas.inspection import InspectionCreate, InspectionItem
 from app.schemas.issue import IssueCreate, IssueStatusUpdate
 from app.schemas.restroom import RestroomCreate
-from app.services import inspection_service, issue_service, restroom_service
+from app.services import adjustment_service, inspection_service, issue_service, restroom_service
 
 RANDOM_SEED = 20240913
 
@@ -189,6 +190,27 @@ def seed_database(db: Session, *, reset: bool = False) -> int:
         )
         created += 1
         _advance_issue(db, issue.id, age_days, rng)
+
+    # 演示一次点位调整：人民广场公厕由城东区划归城南区。
+    # 此前已生成的巡查/问题保留城东区快照，此后当前位置为城南区，
+    # 直接体现「保留原位置、按位置统计前后连续、调整可查」。
+    plaza = next(
+        (room for room in restrooms if room.name == "人民广场公共厕所"), None
+    )
+    if plaza is not None:
+        adjustment_service.relocate(
+            db,
+            plaza.id,
+            RestroomRelocationPayload(
+                district="城南区",
+                address="南城市民广场东侧 50 米",
+                longitude=118.812,
+                latitude=31.896,
+                reason="区域行政区划调整，辖区边界变更",
+                operator="管理员",
+                remark="随区划调整整建制划归城南区管养",
+            ),
+        )
 
     return created
 

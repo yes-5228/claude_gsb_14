@@ -331,6 +331,45 @@ table.data-table td.wrap {
   color: #ffffff;
 }
 
+.btn-warning {
+  color: var(--warning);
+  border-color: #f3d9b0;
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: var(--warning);
+  border-color: var(--warning);
+  color: #ffffff;
+}
+
+/* 点位调整：原值 → 新值 */
+.location-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.location-change .arrow {
+  color: var(--text-muted);
+}
+
+.location-change .to {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.badge-mini {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 18px;
+  border-radius: 9px;
+  background: var(--warning-soft);
+  color: #b45309;
+}
+
 .btn-sm {
   padding: 4px 10px;
   font-size: 12.5px;

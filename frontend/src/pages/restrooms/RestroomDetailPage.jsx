@@ -13,17 +13,36 @@ import { useAsync } from '../../hooks/useAsync.js';
 import { useListQuery } from '../../hooks/useListQuery.js';
 import { formatDateTime } from '../../utils/format.js';
 import RestroomFormModal from './RestroomFormModal.jsx';
+import RestroomRelocationModal from './RestroomRelocationModal.jsx';
 
 const TABS = [
   { key: 'profile', label: '基础档案' },
   { key: 'inspections', label: '巡查记录' },
   { key: 'issues', label: '问题记录' },
+  { key: 'adjustments', label: '位置调整' },
 ];
+
+function ChangeCell({ from, to }) {
+  const changed = (from || '') !== (to || '');
+  return (
+    <span className="location-change">
+      <span className="muted">{from || '-'}</span>
+      <span className="arrow">→</span>
+      <span className={changed ? 'to' : 'muted'}>{to || '-'}</span>
+    </span>
+  );
+}
+
+function formatCoordPair(lng, lat) {
+  if (lng === null || lng === undefined || lat === null || lat === undefined) return '-';
+  return `${Number(lng).toFixed(5)}, ${Number(lat).toFixed(5)}`;
+}
 
 export default function RestroomDetailPage() {
   const { restroomId } = useParams();
   const [tab, setTab] = useState('profile');
   const [showForm, setShowForm] = useState(false);
+  const [showRelocation, setShowRelocation] = useState(false);
 
   const { data: restroom, loading, error, reload } = useAsync(
     () => restroomApi.detail(restroomId),
@@ -39,6 +58,11 @@ export default function RestroomDetailPage() {
     {},
     5,
   );
+  const adjustments = useListQuery(
+    (params) => restroomApi.adjustments(restroomId, params),
+    {},
+    5,
+  );
 
   return (
     <>
@@ -50,6 +74,9 @@ export default function RestroomDetailPage() {
             <Link className="btn" to="/restrooms">
               返回列表
             </Link>
+            <button type="button" className="btn btn-warning" onClick={() => setShowRelocation(true)}>
+              位置调整
+            </button>
             <button type="button" className="btn btn-primary" onClick={() => setShowForm(true)}>
               编辑档案
             </button>
@@ -188,6 +215,53 @@ export default function RestroomDetailPage() {
                 <Pagination meta={issues.meta} onPageChange={issues.setPage} />
               </section>
             ) : null}
+
+            {tab === 'adjustments' ? (
+              <section className="card">
+                <div className="card-title">
+                  <h3>位置调整记录</h3>
+                  <span className="hint">历史巡查与问题按发生时位置归属，不随调整迁移</span>
+                </div>
+                <DataTable
+                  loading={adjustments.loading}
+                  error={adjustments.error}
+                  rows={adjustments.items}
+                  emptyText="该公厕暂无位置调整记录"
+                  columns={[
+                    {
+                      key: 'created_at',
+                      title: '生效时间',
+                      render: (row) => formatDateTime(row.created_at),
+                    },
+                    {
+                      key: 'district',
+                      title: '区域变化',
+                      render: (row) => <ChangeCell from={row.district_from} to={row.district_to} />,
+                    },
+                    {
+                      key: 'address',
+                      title: '地址变化',
+                      wrap: true,
+                      render: (row) => <ChangeCell from={row.address_from} to={row.address_to} />,
+                    },
+                    {
+                      key: 'coords',
+                      title: '经纬度变化',
+                      wrap: true,
+                      render: (row) => (
+                        <ChangeCell
+                          from={formatCoordPair(row.longitude_from, row.latitude_from)}
+                          to={formatCoordPair(row.longitude_to, row.latitude_to)}
+                        />
+                      ),
+                    },
+                    { key: 'reason', title: '调整原因', wrap: true },
+                    { key: 'operator', title: '操作人' },
+                  ]}
+                />
+                <Pagination meta={adjustments.meta} onPageChange={adjustments.setPage} />
+              </section>
+            ) : null}
           </>
         ) : null}
       </div>
@@ -197,6 +271,17 @@ export default function RestroomDetailPage() {
           restroom={restroom}
           onClose={() => setShowForm(false)}
           onSaved={reload}
+        />
+      ) : null}
+
+      {showRelocation && restroom ? (
+        <RestroomRelocationModal
+          restroom={restroom}
+          onClose={() => setShowRelocation(false)}
+          onSaved={() => {
+            reload();
+            adjustments.reload();
+          }}
         />
       ) : null}
     </>

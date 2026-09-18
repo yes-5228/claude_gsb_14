@@ -51,6 +51,10 @@ class InspectionOut(BaseModel):
     id: int
     restroom_id: int
     restroom: RestroomBrief | None = None
+    district: str = ""
+    address: str = ""
+    longitude: float | None = None
+    latitude: float | None = None
     inspector: str
     shift: str
     inspect_time: datetime
