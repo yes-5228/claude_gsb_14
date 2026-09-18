@@ -850,3 +850,55 @@ table.data-table td.wrap {
     white-space: nowrap;
   }
 }
+
+/* 点位调整记录 */
+.adjust-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.adjust-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  background: var(--bg);
+}
+
+.adjust-flow {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.adjust-point {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+}
+
+.adjust-point strong {
+  font-size: 14px;
+}
+
+.adjust-arrow {
+  align-self: center;
+  font-size: 18px;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.adjust-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  font-size: 12px;
+}

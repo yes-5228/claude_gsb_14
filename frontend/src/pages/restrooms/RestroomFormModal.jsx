@@ -21,6 +21,20 @@ const EMPTY = {
   remark: '',
 };
 
+// 点位（区域/地址/经纬度）只能通过“点位调整”修改，普通编辑不提交这些字段
+const NON_LOCATION_FIELDS = [
+  'name',
+  'grade',
+  'status',
+  'manager',
+  'manager_phone',
+  'open_hours',
+  'stall_count',
+  'basin_count',
+  'has_accessible',
+  'remark',
+];
+
 export default function RestroomFormModal({ restroom, onClose, onSaved }) {
   const { dictionaries } = useDictionaries();
   const toast = useToast();
@@ -47,17 +61,16 @@ export default function RestroomFormModal({ restroom, onClose, onSaved }) {
     }
     setSaving(true);
     setError(null);
-    const payload = { ...form };
-    delete payload.id;
-    delete payload.code;
-    delete payload.created_at;
-    delete payload.updated_at;
     try {
       if (restroom?.id) {
+        const payload = Object.fromEntries(
+          NON_LOCATION_FIELDS.map((key) => [key, form[key]]),
+        );
         await restroomApi.update(restroom.id, payload);
-        toast.success('公厕信息已更新');
+        toast.success('公厕信息已更新；点位变更请使用「点位调整」');
       } else {
-        await restroomApi.create({ ...payload, code: form.code || null });
+        const { district, address, ...rest } = form;
+        await restroomApi.create({ ...rest, district, address, code: form.code || null });
         toast.success('公厕已新增');
       }
       onSaved();
@@ -90,8 +103,17 @@ export default function RestroomFormModal({ restroom, onClose, onSaved }) {
         <Field label="公厕名称 *">
           <input value={form.name} onChange={setValue('name')} placeholder="如：人民广场公共厕所" />
         </Field>
-        <Field label="所属区域 *">
-          <input value={form.district} onChange={setValue('district')} placeholder="如：城东区" />
+        <Field
+          label="所属区域 *"
+          hint={restroom?.id ? '点位信息请通过详情页「点位调整」修改' : undefined}
+        >
+          <input
+            value={form.district}
+            onChange={setValue('district')}
+            placeholder="如：城东区"
+            readOnly={Boolean(restroom?.id)}
+            disabled={Boolean(restroom?.id)}
+          />
         </Field>
         <Field label="公厕编号" hint="留空由系统自动生成">
           <input
@@ -140,8 +162,18 @@ export default function RestroomFormModal({ restroom, onClose, onSaved }) {
             已配置无障碍厕位
           </label>
         </Field>
-        <Field label="详细地址" full>
-          <input value={form.address} onChange={setValue('address')} placeholder="路名 + 门牌或明显参照物" />
+        <Field
+          label="详细地址"
+          full
+          hint={restroom?.id ? '点位信息请通过详情页「点位调整」修改' : undefined}
+        >
+          <input
+            value={form.address}
+            onChange={setValue('address')}
+            placeholder="路名 + 门牌或明显参照物"
+            readOnly={Boolean(restroom?.id)}
+            disabled={Boolean(restroom?.id)}
+          />
         </Field>
         <Field label="备注" full>
           <textarea rows="2" value={form.remark || ''} onChange={setValue('remark')} />

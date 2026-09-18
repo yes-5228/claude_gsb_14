@@ -45,3 +45,8 @@ class Restroom(Base):
     issues: Mapped[list["Issue"]] = relationship(  # noqa: F821
         back_populates="restroom", cascade="all, delete-orphan"
     )
+    adjustments: Mapped[list["LocationAdjustment"]] = relationship(  # noqa: F821
+        back_populates="restroom",
+        cascade="all, delete-orphan",
+        order_by="desc(LocationAdjustment.effective_at)",
+    )

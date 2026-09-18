@@ -158,33 +158,36 @@ def inspection_trend(db: Session, days: int = 14) -> list[TrendPoint]:
 
 
 def district_stats(db: Session) -> list[DistrictStat]:
+    # 公厕数量按台账当前区域统计；巡查均分/未闭环问题按各自的点位快照统计，
+    # 区域键取三者并集，保证点位调整后只留有历史数据的旧区域不会消失。
     restroom_rows = db.execute(
         select(Restroom.district, func.count()).group_by(Restroom.district)
     ).all()
-    counts = {district: int(count) for district, count in restroom_rows}
+    counts = {district: int(count) for district, count in restroom_rows if district}
     open_rows = db.execute(
-        select(Restroom.district, func.count(Issue.id))
-        .join(Issue, Issue.restroom_id == Restroom.id)
+        select(Issue.district, func.count(Issue.id))
         .where(Issue.status.in_(OPEN_ISSUE_STATUSES))
-        .group_by(Restroom.district)
+        .group_by(Issue.district)
     ).all()
-    opens = {district: int(count) for district, count in open_rows}
+    opens = {district: int(count) for district, count in open_rows if district}
     score_rows = db.execute(
-        select(Restroom.district, func.avg(Inspection.score))
-        .join(Inspection, Inspection.restroom_id == Restroom.id)
-        .group_by(Restroom.district)
+        select(Inspection.district, func.avg(Inspection.score))
+        .group_by(Inspection.district)
     ).all()
-    scores = {district: float(avg or 0) for district, avg in score_rows}
+    scores = {
+        district: float(avg or 0) for district, avg in score_rows if district
+    }
 
+    districts = set(counts) | set(opens) | set(scores)
     return sorted(
         [
             DistrictStat(
                 district=district,
-                restroom_count=count,
+                restroom_count=counts.get(district, 0),
                 issue_open=opens.get(district, 0),
                 avg_score=round(scores.get(district, 0.0), 1),
             )
-            for district, count in counts.items()
+            for district in districts
         ],
         key=lambda item: (item.issue_open, -item.avg_score),
         reverse=True,

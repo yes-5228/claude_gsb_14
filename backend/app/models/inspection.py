@@ -19,6 +19,18 @@ class Inspection(Base):
     restroom_id: Mapped[int] = mapped_column(
         ForeignKey("restrooms.id", ondelete="CASCADE"), index=True, comment="所属公厕"
     )
+    district: Mapped[str] = mapped_column(
+        String(60), default="", index=True, comment="巡查发生时公厕所属区域（点位快照）"
+    )
+    address: Mapped[str] = mapped_column(
+        String(200), default="", comment="巡查发生时公厕详细地址（点位快照）"
+    )
+    longitude: Mapped[float | None] = mapped_column(
+        Float, nullable=True, comment="巡查发生时公厕经度（点位快照）"
+    )
+    latitude: Mapped[float | None] = mapped_column(
+        Float, nullable=True, comment="巡查发生时公厕纬度（点位快照）"
+    )
     inspector: Mapped[str] = mapped_column(String(60), index=True, comment="巡查人")
     inspect_time: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now, index=True, comment="巡查时间"

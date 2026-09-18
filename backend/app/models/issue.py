@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constants import IssueCategory, IssueSeverity, IssueStatus
@@ -18,6 +18,18 @@ class Issue(Base):
     code: Mapped[str] = mapped_column(String(32), unique=True, index=True, comment="问题编号")
     restroom_id: Mapped[int] = mapped_column(
         ForeignKey("restrooms.id", ondelete="CASCADE"), index=True, comment="所属公厕"
+    )
+    district: Mapped[str] = mapped_column(
+        String(60), default="", index=True, comment="问题上报时公厕所属区域（点位快照）"
+    )
+    address: Mapped[str] = mapped_column(
+        String(200), default="", comment="问题上报时公厕详细地址（点位快照）"
+    )
+    longitude: Mapped[float | None] = mapped_column(
+        Float, nullable=True, comment="问题上报时公厕经度（点位快照）"
+    )
+    latitude: Mapped[float | None] = mapped_column(
+        Float, nullable=True, comment="问题上报时公厕纬度（点位快照）"
     )
     inspection_id: Mapped[int | None] = mapped_column(
         ForeignKey("inspections.id", ondelete="SET NULL"), nullable=True, index=True,

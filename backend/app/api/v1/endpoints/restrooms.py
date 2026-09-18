@@ -9,7 +9,14 @@ from sqlalchemy.orm import Session
 from app.api.deps import PaginationDep, build_meta
 from app.core.database import get_db
 from app.schemas.common import MessageOut, Page
-from app.schemas.restroom import RestroomCreate, RestroomDetail, RestroomOut, RestroomUpdate
+from app.schemas.restroom import (
+    LocationAdjustmentCreate,
+    LocationAdjustmentOut,
+    RestroomCreate,
+    RestroomDetail,
+    RestroomOut,
+    RestroomUpdate,
+)
 from app.services import restroom_service
 
 router = APIRouter(prefix="/restrooms", tags=["公厕台账"])
@@ -75,3 +82,30 @@ def delete_restroom(
 ) -> MessageOut:
     restroom_service.delete_restroom(db, restroom_id, force=force)
     return MessageOut(message="删除成功")
+
+
+@router.get(
+    "/{restroom_id}/location-adjustments",
+    response_model=list[LocationAdjustmentOut],
+    summary="点位调整记录",
+)
+def list_location_adjustments(
+    restroom_id: int, db: Annotated[Session, Depends(get_db)]
+) -> list[LocationAdjustmentOut]:
+    rows = restroom_service.list_adjustments(db, restroom_id)
+    return [LocationAdjustmentOut.model_validate(row) for row in rows]
+
+
+@router.post(
+    "/{restroom_id}/location-adjustments",
+    response_model=LocationAdjustmentOut,
+    status_code=201,
+    summary="调整公厕点位",
+)
+def adjust_location(
+    restroom_id: int,
+    payload: LocationAdjustmentCreate,
+    db: Annotated[Session, Depends(get_db)],
+) -> LocationAdjustmentOut:
+    adjustment = restroom_service.adjust_location(db, restroom_id, payload)
+    return LocationAdjustmentOut.model_validate(adjustment)

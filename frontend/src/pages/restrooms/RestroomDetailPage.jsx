@@ -12,18 +12,23 @@ import { ScorePill, SeverityTag, StatusTag } from '../../components/Tags.jsx';
 import { useAsync } from '../../hooks/useAsync.js';
 import { useListQuery } from '../../hooks/useListQuery.js';
 import { formatDateTime } from '../../utils/format.js';
+import LocationAdjustModal from './LocationAdjustModal.jsx';
+import LocationAdjustmentsPanel from './LocationAdjustmentsPanel.jsx';
 import RestroomFormModal from './RestroomFormModal.jsx';
 
 const TABS = [
   { key: 'profile', label: '基础档案' },
   { key: 'inspections', label: '巡查记录' },
   { key: 'issues', label: '问题记录' },
+  { key: 'adjustments', label: '调整记录' },
 ];
 
 export default function RestroomDetailPage() {
   const { restroomId } = useParams();
   const [tab, setTab] = useState('profile');
   const [showForm, setShowForm] = useState(false);
+  const [showAdjust, setShowAdjust] = useState(false);
+  const [adjustReloadKey, setAdjustReloadKey] = useState(0);
 
   const { data: restroom, loading, error, reload } = useAsync(
     () => restroomApi.detail(restroomId),
@@ -50,8 +55,11 @@ export default function RestroomDetailPage() {
             <Link className="btn" to="/restrooms">
               返回列表
             </Link>
-            <button type="button" className="btn btn-primary" onClick={() => setShowForm(true)}>
+            <button type="button" className="btn" onClick={() => setShowForm(true)}>
               编辑档案
+            </button>
+            <button type="button" className="btn btn-primary" onClick={() => setShowAdjust(true)}>
+              点位调整
             </button>
           </>
         }
@@ -188,6 +196,18 @@ export default function RestroomDetailPage() {
                 <Pagination meta={issues.meta} onPageChange={issues.setPage} />
               </section>
             ) : null}
+
+            {tab === 'adjustments' ? (
+              <section className="card">
+                <div className="card-title">
+                  <h3>点位调整记录</h3>
+                  <span className="hint">
+                    共 {restroom.location_adjustment_count ?? 0} 次调整，历史巡查与问题保留调整前位置
+                  </span>
+                </div>
+                <LocationAdjustmentsPanel restroomId={restroomId} reloadKey={adjustReloadKey} />
+              </section>
+            ) : null}
           </>
         ) : null}
       </div>
@@ -197,6 +217,17 @@ export default function RestroomDetailPage() {
           restroom={restroom}
           onClose={() => setShowForm(false)}
           onSaved={reload}
+        />
+      ) : null}
+
+      {showAdjust && restroom ? (
+        <LocationAdjustModal
+          restroom={restroom}
+          onClose={() => setShowAdjust(false)}
+          onSaved={() => {
+            setAdjustReloadKey((key) => key + 1);
+            reload();
+          }}
         />
       ) : null}
     </>

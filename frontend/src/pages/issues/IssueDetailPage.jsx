@@ -126,6 +126,24 @@ export default function IssueDetailPage() {
                       '-'
                     ),
                   },
+                  {
+                    label: '上报时点位',
+                    value:
+                      issue.restroom?.district &&
+                      issue.district &&
+                      issue.district !== issue.restroom.district ? (
+                        <span title={`公厕当前区域：${issue.restroom.district}`}>
+                          {[issue.district, issue.address].filter(Boolean).join(' · ')}
+                          <span className="tag tag-neutral" style={{ marginLeft: 8 }}>
+                            原始位置
+                          </span>
+                        </span>
+                      ) : (
+                        [issue.district || issue.restroom?.district, issue.address]
+                          .filter(Boolean)
+                          .join(' · ') || '-'
+                      ),
+                  },
                   { label: '问题分类', value: issue.category },
                   {
                     label: '上报人 / 时间',

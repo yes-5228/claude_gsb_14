@@ -178,6 +178,19 @@ export default function IssueListPage() {
                     '-'
                   ),
               },
+              {
+                key: 'district',
+                title: '区域',
+                render: (row) =>
+                  row.restroom?.district && row.district && row.district !== row.restroom.district ? (
+                    <span title={`问题上报时所属区域；当前区域：${row.restroom.district}`}>
+                      {row.district}
+                      <span className="muted">（原）</span>
+                    </span>
+                  ) : (
+                    row.district || row.restroom?.district || '-'
+                  ),
+              },
               { key: 'category', title: '分类' },
               {
                 key: 'severity',

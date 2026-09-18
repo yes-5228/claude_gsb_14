@@ -34,6 +34,24 @@ export default function InspectionDetailModal({ inspection, onClose, onReportIss
           { label: '得分', value: <ScorePill score={inspection.score} /> },
           { label: '评分等级', value: <GradeTag grade={inspection.grade} /> },
           { label: '巡查结论', value: <StatusTag status={inspection.result} /> },
+          {
+            label: '巡查时点位',
+            value:
+              inspection.restroom?.district &&
+              inspection.district &&
+              inspection.district !== inspection.restroom.district ? (
+                <span title={`公厕当前区域：${inspection.restroom.district}`}>
+                  {[inspection.district, inspection.address].filter(Boolean).join(' · ')}
+                  <span className="tag tag-neutral" style={{ marginLeft: 8 }}>
+                    原始位置
+                  </span>
+                </span>
+              ) : (
+                [inspection.district || inspection.restroom?.district, inspection.address]
+                  .filter(Boolean)
+                  .join(' · ') || '-'
+              ),
+          },
           { label: '关联问题', value: `${inspection.issue_count} 条` },
           { label: '巡查备注', value: inspection.remark || '无' },
         ]}

@@ -7,8 +7,14 @@ from sqlalchemy.orm import Session
 
 from app.core.constants import OPEN_ISSUE_STATUSES
 from app.core.exceptions import ConflictError, DomainError, NotFoundError
-from app.models import Inspection, Issue, Restroom
-from app.schemas.restroom import RestroomCreate, RestroomDetail, RestroomOut, RestroomUpdate
+from app.models import Inspection, Issue, LocationAdjustment, Restroom
+from app.schemas.restroom import (
+    LocationAdjustmentCreate,
+    RestroomCreate,
+    RestroomDetail,
+    RestroomOut,
+    RestroomUpdate,
+)
 
 SORTABLE_FIELDS = {
     "code": Restroom.code,
@@ -74,7 +80,109 @@ def list_restrooms(
 
 
 def list_districts(db: Session) -> list[str]:
-    return list(db.scalars(select(Restroom.district).distinct().order_by(Restroom.district)))
+    """区域下拉：当前台账区域与历史巡查/问题快照区域的并集。
+
+    保留只存在历史数据的旧区域，保证点位调整后仍可按旧区域筛选与统计。
+    """
+    districts: set[str] = set()
+    districts.update(
+        d for d in db.scalars(select(Restroom.district).distinct()) if d
+    )
+    districts.update(
+        d for d in db.scalars(select(Inspection.district).distinct()) if d
+    )
+    districts.update(d for d in db.scalars(select(Issue.district).distinct()) if d)
+    return sorted(districts)
+
+
+def location_as_of(
+    db: Session, restroom_id: int, moment: datetime
+) -> tuple[str, str, float | None, float | None]:
+    """公厕在某时刻的点位（区域、地址、经纬度），供新建巡查/问题时冻结快照。
+
+    三级回退：
+    1. 生效时间不晚于 moment 的最新一次调整 -> 取其 to_*；
+    2. 存在更早调整（moment 早于首次调整）-> 取最早一次调整的 from_*；
+    3. 从未调整 -> 取当前台账位置。
+    """
+    latest = db.scalars(
+        select(LocationAdjustment)
+        .where(
+            LocationAdjustment.restroom_id == restroom_id,
+            LocationAdjustment.effective_at <= moment,
+        )
+        .order_by(LocationAdjustment.effective_at.desc(), LocationAdjustment.id.desc())
+        .limit(1)
+    ).first()
+    if latest is not None:
+        return latest.to_district, latest.to_address, latest.to_longitude, latest.to_latitude
+
+    first = db.scalars(
+        select(LocationAdjustment)
+        .where(LocationAdjustment.restroom_id == restroom_id)
+        .order_by(LocationAdjustment.effective_at.asc(), LocationAdjustment.id.asc())
+        .limit(1)
+    ).first()
+    if first is not None:
+        return (
+            first.from_district,
+            first.from_address,
+            first.from_longitude,
+            first.from_latitude,
+        )
+
+    restroom = get_restroom(db, restroom_id)
+    return restroom.district, restroom.address, restroom.longitude, restroom.latitude
+
+
+def list_adjustments(db: Session, restroom_id: int) -> list[LocationAdjustment]:
+    get_restroom(db, restroom_id)
+    return list(
+        db.scalars(
+            select(LocationAdjustment)
+            .where(LocationAdjustment.restroom_id == restroom_id)
+            .order_by(LocationAdjustment.effective_at.desc(), LocationAdjustment.id.desc())
+        )
+    )
+
+
+def adjust_location(
+    db: Session, restroom_id: int, payload: LocationAdjustmentCreate
+) -> LocationAdjustment:
+    """调整公厕点位：记录原值/新值流水并更新台账，历史巡查/问题快照不变。"""
+    restroom = get_restroom(db, restroom_id)
+    target = (
+        payload.to_district.strip(),
+        payload.to_address.strip(),
+        payload.to_longitude,
+        payload.to_latitude,
+    )
+    current = (restroom.district, restroom.address, restroom.longitude, restroom.latitude)
+    if target == current:
+        raise DomainError("调整后的点位与当前点位完全相同，无需调整")
+
+    adjustment = LocationAdjustment(
+        restroom_id=restroom_id,
+        reason=payload.reason,
+        operator=payload.operator,
+        effective_at=datetime.now(),
+        from_district=restroom.district,
+        to_district=target[0],
+        from_address=restroom.address,
+        to_address=target[1],
+        from_longitude=restroom.longitude,
+        to_longitude=target[2],
+        from_latitude=restroom.latitude,
+        to_latitude=target[3],
+    )
+    restroom.district = target[0]
+    restroom.address = target[1]
+    restroom.longitude = target[2]
+    restroom.latitude = target[3]
+    db.add(adjustment)
+    db.commit()
+    db.refresh(adjustment)
+    return adjustment
 
 
 def create_restroom(db: Session, payload: RestroomCreate) -> Restroom:
@@ -138,6 +246,11 @@ def get_restroom_detail(db: Session, restroom_id: int) -> RestroomDetail:
     total_issue_count = db.scalar(
         select(func.count()).select_from(Issue).where(Issue.restroom_id == restroom_id)
     ) or 0
+    adjustment_count = db.scalar(
+        select(func.count())
+        .select_from(LocationAdjustment)
+        .where(LocationAdjustment.restroom_id == restroom_id)
+    ) or 0
 
     base = RestroomOut.model_validate(restroom).model_dump()
     return RestroomDetail(
@@ -148,6 +261,7 @@ def get_restroom_detail(db: Session, restroom_id: int) -> RestroomDetail:
         avg_score=round(float(avg_score), 1) if avg_score is not None else None,
         open_issue_count=open_issue_count,
         total_issue_count=total_issue_count,
+        location_adjustment_count=adjustment_count,
     )
 
 

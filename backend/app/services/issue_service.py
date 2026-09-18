@@ -12,7 +12,7 @@ from app.core.constants import (
     IssueStatus,
 )
 from app.core.exceptions import DomainError, NotFoundError
-from app.models import Inspection, Issue, RectificationRecord, Restroom
+from app.models import Inspection, Issue, RectificationRecord
 from app.schemas.issue import IssueCreate, IssueOut, IssueStatusUpdate, IssueUpdate
 from app.services import restroom_service
 
@@ -85,9 +85,7 @@ def list_issues(
 ) -> tuple[list[Issue], int]:
     stmt = select(Issue)
     if district:
-        stmt = stmt.join(Restroom, Restroom.id == Issue.restroom_id).where(
-            Restroom.district == district
-        )
+        stmt = stmt.where(Issue.district == district)
     if restroom_id:
         stmt = stmt.where(Issue.restroom_id == restroom_id)
     if inspection_id:
@@ -136,19 +134,38 @@ def list_issues(
 
 def create_issue(db: Session, payload: IssueCreate) -> Issue:
     restroom_service.get_restroom(db, payload.restroom_id)
+    linked_inspection: Inspection | None = None
     if payload.inspection_id is not None:
-        inspection = db.get(Inspection, payload.inspection_id)
-        if inspection is None:
+        linked_inspection = db.get(Inspection, payload.inspection_id)
+        if linked_inspection is None:
             raise NotFoundError(f"巡查记录 {payload.inspection_id} 不存在")
-        if inspection.restroom_id != payload.restroom_id:
+        if linked_inspection.restroom_id != payload.restroom_id:
             raise DomainError("关联的巡查记录与所选公厕不一致")
+
+    report_time = payload.report_time or datetime.now()
+    if linked_inspection is not None:
+        # 关联巡查的问题归属该次巡查发生时的点位，保持口径一致
+        district, address, longitude, latitude = (
+            linked_inspection.district,
+            linked_inspection.address,
+            linked_inspection.longitude,
+            linked_inspection.latitude,
+        )
+    else:
+        district, address, longitude, latitude = restroom_service.location_as_of(
+            db, payload.restroom_id, report_time
+        )
 
     data = _values(payload.model_dump(exclude={"inspection_id", "report_time", "initial_remark"}))
     issue = Issue(
         code=_next_code(db),
         inspection_id=payload.inspection_id,
-        report_time=payload.report_time or datetime.now(),
+        report_time=report_time,
         status=IssueStatus.PENDING.value,
+        district=district,
+        address=address,
+        longitude=longitude,
+        latitude=latitude,
         **data,
     )
     issue.records.append(

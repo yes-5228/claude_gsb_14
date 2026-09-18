@@ -18,7 +18,7 @@ from app.core.constants import (
 from app.models import Restroom
 from app.schemas.inspection import InspectionCreate, InspectionItem
 from app.schemas.issue import IssueCreate, IssueStatusUpdate
-from app.schemas.restroom import RestroomCreate
+from app.schemas.restroom import LocationAdjustmentCreate, RestroomCreate
 from app.services import inspection_service, issue_service, restroom_service
 
 RANDOM_SEED = 20240913
@@ -189,6 +189,23 @@ def seed_database(db: Session, *, reset: bool = False) -> int:
         )
         created += 1
         _advance_issue(db, issue.id, age_days, rng)
+
+    # 演示一次点位调整：把首座公厕划入新区域，其历史巡查/问题仍留在原区域，
+    # 看板上旧区域保留历史数据、新区域承载当前公厕，直观体现口径连续。
+    if restrooms:
+        moved = restrooms[0]
+        restroom_service.adjust_location(
+            db,
+            moved.id,
+            LocationAdjustmentCreate(
+                to_district="城南新区",
+                to_address="人民广场地下通道南口（调整后出入口）",
+                to_longitude=120.215_000,
+                to_latitude=30.247_000,
+                reason="行政区划调整，广场地下公厕整体划入城南新区管辖",
+                operator="城管指挥中心",
+            ),
+        )
 
     return created
 

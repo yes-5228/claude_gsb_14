@@ -54,5 +54,8 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db() -> None:
     from app import models  # noqa: F401  确保模型完成注册
+    from app.core.migrations import run_startup_migrations
 
+    # 新库按当前模型一次性建表；随后由启动迁移为老库补列、回填并登记版本
     Base.metadata.create_all(bind=engine)
+    run_startup_migrations(engine)

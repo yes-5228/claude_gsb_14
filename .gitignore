@@ -42,3 +42,5 @@ traces/
 db.sqlite3
 *.sqlite3
 .venv
+# 本地运行时 SQLite 数据库（启动自动生成/演示数据）
+/backend/data/

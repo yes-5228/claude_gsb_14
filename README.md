@@ -125,9 +125,11 @@ npm run dev
 | GET | `/restrooms` | 台账分页查询（keyword/district/status/grade/排序/分页） |
 | POST | `/restrooms` | 新增公厕，编号留空自动生成 `WC-0001` |
 | GET | `/restrooms/{id}` | 详情，含巡查次数、均分、未闭环问题数 |
-| PATCH | `/restrooms/{id}` | 局部更新 |
+| PATCH | `/restrooms/{id}` | 局部更新（点位字段除外，区域/地址/坐标需走点位调整） |
 | DELETE | `/restrooms/{id}?force=` | 删除；有巡查或问题记录时返回 409，`force=true` 才级联删除 |
-| GET | `/restrooms/meta/districts` | 区域列表（筛选下拉用） |
+| GET | `/restrooms/{id}/location-adjustments` | 公厕点位调整记录（原值/新值/原因/操作人/生效时间） |
+| POST | `/restrooms/{id}/location-adjustments` | 调整点位（区域/地址/坐标），即时生效并留痕 |
+| GET | `/restrooms/meta/districts` | 区域列表（含历史快照区域，筛选下拉用） |
 | GET | `/inspections` | 巡查记录查询（restroom_id/district/inspector/shift/result/日期区间/关键字） |
 | POST | `/inspections` | 新增巡查，服务端按检查项自动算分、定级、判定结论 |
 | GET/PATCH/DELETE | `/inspections/{id}` | 详情 / 更新 / 删除 |
@@ -150,6 +152,8 @@ npm run dev
 - **整改闭环**：`待整改 → 整改中 → 待验收 → 已完成 → 已关闭`；`待验证` 阶段可被驳回退回 `整改中`，`待整改/整改中` 可直接作废关闭。每次流转都会写入一条整改流水（动作、原状态、新状态、操作人、说明），详情页以时间线呈现。
 - **超期预警**：整改期限早于当前时间且状态仍处于未闭环（待整改/整改中/待验收）时，列表与详情页显示「已超期」，看板统计超期数量。
 - **删除保护**：删除公厕时若已存在巡查或问题记录，接口返回 409 并提示数量，需要显式 `force=true` 才会级联删除；前端会二次确认。
+- **点位调整与历史归属**：公厕的区域/地址/坐标只能通过「点位调整」（`POST /restrooms/{id}/location-adjustments`）修改，普通编辑不可改点位。每次调整即时生效并记录原值/新值/原因/操作人/生效时间（调整记录可查询）。巡查与问题在创建时冻结当时的点位快照，调整不影响历史记录；按区域的统计与筛选以快照为准，区域口径在调整前后连续（历史留在旧区域、调整后数据计入新区域，旧区域仍可筛选）。关联巡查的问题继承该次巡查的点位。
+- **轻量建表/升级**：启动时自动 `create_all` 并执行内置的幂等迁移（为旧库补点位快照列并回填、登记 `schema_migrations` 版本），SQLite 与 PostgreSQL 均适用，无需额外迁移工具。
 
 ## 演示数据
 

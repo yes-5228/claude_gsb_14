@@ -141,7 +141,19 @@ export default function InspectionListPage() {
                     '-'
                   ),
               },
-              { key: 'district', title: '区域', render: (row) => row.restroom?.district ?? '-' },
+              {
+                key: 'district',
+                title: '区域',
+                render: (row) =>
+                  row.restroom?.district && row.district && row.district !== row.restroom.district ? (
+                    <span title={`巡查发生时所属区域；当前区域：${row.restroom.district}`}>
+                      {row.district}
+                      <span className="muted">（原）</span>
+                    </span>
+                  ) : (
+                    row.district || row.restroom?.district || '-'
+                  ),
+              },
               { key: 'inspector', title: '巡查人' },
               { key: 'shift', title: '班次' },
               { key: 'score', title: '得分', render: (row) => <ScorePill score={row.score} /> },
